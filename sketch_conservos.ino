@@ -1,5 +1,3 @@
-// PASTILLERO arduino nano
-
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <RTClib.h>
@@ -15,23 +13,20 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define bajar 9
 #define atras 10   // Botón para volver atrás
 
-// Pin del Buzzer Activo
+// Pin del Módulo Buzzer Activo
 #define buzzerPin 2
 
-// Si el buzzer suena constante al arrancar, cambia esta línea a false:
-const bool BUZZER_ACTIVO_LOW = true; 
-
 // Pines para los 4 servos
-const int pinesServos[4] = {3, 4, 5, 6};
+const int pinesServos[4] = {6, 5, 4, 3};
 Servo servos[4];
 
 const char menuPas[6][20] = {
-  "Anadir horario",
-  "Horarios program",
-  "Borrar alarma",
-  "Resetear todo",
-  "Cargar pastillas",
-  "Pastillas dispon"
+  "ANADIR HORARIO",
+  "HORARIOS PROGRAM",
+  "BORRAR ALARMA",
+  "RESETEAR TODO",
+  "CARGAR PASTILLAS",
+  "PASTILLAS DISP."
 };
 const int totalOpciones = 6;
 int indiceActual = 0;
@@ -62,14 +57,14 @@ int pasoBorrado = 0;
 // Variables para Cargar Pastillas
 int cargarComp = 1;
 int cargarCant = 10;
-int pasoCargar = 0; // 0 = Seleccionar Compartimento, 1 = Seleccionar Cantidad
+int pasoCargar = 0; 
 
 // Matriz de Alarmas
 int horasAlarmas[4][3];
 int minutosAlarmas[4][3];
 int dosisAlarmas[4][3];        
 bool yaDispensado[4][3];        
-int stockPastillas[4] = {10, 10, 10, 10}; 
+int stockPastillas[4] = {0, 0, 0, 0}; // <--- INICIALIZADO EN 0 COMO PEDISTE
 
 int verCompartimento = 1;
 int verAlarma = 1;
@@ -80,7 +75,7 @@ unsigned long ultimoPulsoBuzzer = 0;
 
 DateTime now;
 
-// Funciones
+// Declaración de Funciones
 void guardarAlarmaEEPROM(int comp, int slot, int h, int m, int cant);
 void borrarAlarmaEEPROM(int comp, int slot);
 void resetearTodoEEPROM();
@@ -98,17 +93,18 @@ void encenderBuzzer();
 void apagarBuzzer();
 
 void encenderBuzzer() {
-  digitalWrite(buzzerPin, BUZZER_ACTIVO_LOW ? LOW : HIGH);
+  digitalWrite(buzzerPin, LOW); 
 }
 
 void apagarBuzzer() {
-  digitalWrite(buzzerPin, BUZZER_ACTIVO_LOW ? HIGH : LOW);
+  digitalWrite(buzzerPin, HIGH); 
 }
 
 void setup() {
   Serial.begin(9600);
 
   pinMode(buzzerPin, OUTPUT);
+  digitalWrite(buzzerPin, HIGH); 
   apagarBuzzer();
 
   Wire.begin();
@@ -116,9 +112,9 @@ void setup() {
   lcd.backlight();
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("   Bienvenido");
+  lcd.print(F("   Bienvenido"));
   lcd.setCursor(0, 1);
-  lcd.print("      PILLEX");
+  lcd.print(F("     PILLEX"));
 
   pinMode(subir, INPUT_PULLUP);
   pinMode(bajar, INPUT_PULLUP);
@@ -132,7 +128,6 @@ void setup() {
   cargarAlarmasEEPROM();
   delay(2000);
   lcd.clear();
-  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 void loop() {
@@ -208,11 +203,12 @@ void loop() {
           horasAlarmas[cIdx][aIdx] = hora;
           minutosAlarmas[cIdx][aIdx] = minuto;
           dosisAlarmas[cIdx][aIdx] = cantidadDosis;
+          yaDispensado[cIdx][aIdx] = false; // <--- SE RESETEA AL CREAR/MODIFICAR
 
           guardarAlarmaEEPROM(cIdx, aIdx, hora, minuto, cantidadDosis);
 
           lcd.setCursor(0, 0);
-          lcd.print("Alarma Guardada!");
+          lcd.print(F("Alarma Guardada!"));
           lcd.setCursor(0, 1);
           lcd.print("C"); lcd.print(compartimento);
           lcd.print(" A"); lcd.print(numAlarma);
@@ -234,7 +230,7 @@ void loop() {
           borrarAlarmaEEPROM(cIdx, aIdx);
 
           lcd.setCursor(0, 0);
-          lcd.print("Alarma Borrada! ");
+          lcd.print(F("Alarma Borrada! "));
           lcd.setCursor(0, 1);
           lcd.print("C"); lcd.print(borrarComp);
           lcd.print(" Alarma "); lcd.print(borrarNumAlarma);
@@ -249,9 +245,9 @@ void loop() {
         resetearTodoEEPROM();
 
         lcd.setCursor(0, 0);
-        lcd.print("   MEMORIA CERO  ");
+        lcd.print(F("   MEMORIA CERO  "));
         lcd.setCursor(0, 1);
-        lcd.print("Alarmas borradas");
+        lcd.print(F("Alarmas borradas"));
         delay(2000);
 
         subPantalla = 0;
@@ -262,10 +258,10 @@ void loop() {
         lcd.clear();
         if (pasoCargar > 1) {
           int cIdx = cargarComp - 1;
-          stockPastillas[cIdx] += cargarCant; // Se agrega la cantidad al stock existente
+          stockPastillas[cIdx] += cargarCant; 
 
           lcd.setCursor(0, 0);
-          lcd.print("Stock Cargado!  ");
+          lcd.print(F("Stock Cargado!  "));
           lcd.setCursor(0, 1);
           lcd.print("Comp "); lcd.print(cargarComp);
           lcd.print(" Total:"); lcd.print(stockPastillas[cIdx]);
@@ -295,9 +291,9 @@ void loop() {
   // --- VISTAS DISPLAY ---
   if (alarmaSonando) {
     lcd.setCursor(0, 0);
-    lcd.print(" TOME PASTILLA  ");
+    lcd.print(F(" TOME PASTILLA  "));
     lcd.setCursor(0, 1);
-    lcd.print("Presione OK...  ");
+    lcd.print(F("Presione OK...  "));
   } else if (pantalla == 0) {
     if (pantallaAnterior != 0) {
       lcd.clear();
@@ -318,7 +314,7 @@ void loop() {
   }
 
   // --- CONFIGURACIÓN DE PARÁMETROS ---
-  if (subPantalla == 1) { // Añadir Alarma
+  if (subPantalla == 1) { 
     if (digitalRead(subir) == LOW) {
       if (definiendoPaso == 0) { compartimento++; if (compartimento > 4) compartimento = 1; }
       else if (definiendoPaso == 1) { numAlarma++; if (numAlarma > 3) numAlarma = 1; }
@@ -337,7 +333,7 @@ void loop() {
     }
   }
 
-  if (subPantalla == 2) { // Ver Programados
+  if (subPantalla == 2) { 
     if (digitalRead(subir) == LOW) {
       verAlarma++;
       if (verAlarma > 3) { verAlarma = 1; verCompartimento++; if (verCompartimento > 4) verCompartimento = 1; }
@@ -350,7 +346,7 @@ void loop() {
     }
   }
 
-  if (subPantalla == 3) { // Borrar Alarma
+  if (subPantalla == 3) { 
     if (digitalRead(subir) == LOW) {
       if (pasoBorrado == 0) { borrarComp++; if (borrarComp > 4) borrarComp = 1; }
       else if (pasoBorrado == 1) { borrarNumAlarma++; if (borrarNumAlarma > 3) borrarNumAlarma = 1; }
@@ -363,7 +359,7 @@ void loop() {
     }
   }
 
-  if (subPantalla == 5) { // Cargar Pastillas
+  if (subPantalla == 5) { 
     if (digitalRead(subir) == LOW) {
       if (pasoCargar == 0) { cargarComp++; if (cargarComp > 4) cargarComp = 1; }
       else if (pasoCargar == 1) { cargarCant++; if (cargarCant > 20) cargarCant = 1; }
@@ -387,9 +383,13 @@ void actualizarBuzzer() {
 
   if (milisActuales - ultimoPulsoBuzzer >= 2000) {
     ultimoPulsoBuzzer = milisActuales;
-    encenderBuzzer();
-    delay(80);
-    apagarBuzzer();
+    
+    for (int i = 0; i < 3; i++) {
+      digitalWrite(buzzerPin, LOW);
+      delay(60);
+      digitalWrite(buzzerPin, HIGH);
+      delay(50);
+    }
   }
 }
 
@@ -409,12 +409,14 @@ void borrarAlarmaEEPROM(int comp, int slot) {
   horasAlarmas[comp][slot] = -1;
   minutosAlarmas[comp][slot] = -1;
   dosisAlarmas[comp][slot] = 0;
+  yaDispensado[comp][slot] = false; // <--- LIMPIAR TAMBIÉN AL BORRAR
 }
 
 void resetearTodoEEPROM() {
   for (int c = 0; c < 4; c++) {
     for (int a = 0; a < 3; a++) {
       borrarAlarmaEEPROM(c, a);
+      yaDispensado[c][a] = false; // <--- ASEGURA REINICIO AL RESETEAR TODO
     }
   }
 }
@@ -447,11 +449,11 @@ void dispensarPastilla(int indiceCompartimento, int cantidad) {
   for (int p = 0; p < cantidad; p++) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("DISPENSANDO...");
+    lcd.print(F("DISPENSANDO..."));
     lcd.setCursor(0, 1);
-    lcd.print("Pastilla ");
+    lcd.print(F("Pastilla "));
     lcd.print(p + 1);
-    lcd.print(" de ");
+    lcd.print(F(" de "));
     lcd.print(cantidad);
 
     servos[indiceCompartimento].write(0);
@@ -471,14 +473,14 @@ void dispensarPastilla(int indiceCompartimento, int cantidad) {
     stockPastillas[indiceCompartimento] = 0;
   }
 
-  // --- AVISO SI QUEDA POCO STOCK (1 o 0 pastillas) ---
+  // --- AVISO SI QUEDA POCO STOCK ---
   if (stockPastillas[indiceCompartimento] <= 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("!ALERTA STOCK!");
+    lcd.print(F("!ALERTA STOCK!"));
     lcd.setCursor(0, 1);
     lcd.print("C"); lcd.print(indiceCompartimento + 1);
-    lcd.print(" Queda(n): "); lcd.print(stockPastillas[indiceCompartimento]);
+    lcd.print(F(" Queda(n): ")); lcd.print(stockPastillas[indiceCompartimento]);
     delay(2500);
   }
 
@@ -521,7 +523,7 @@ void mostrarHora() {
   if (minutoAnterior != now.minute()) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("FECHA: ");
+    lcd.print(F("FECHA: "));
     if (now.day() < 10) lcd.print("0");
     lcd.print(now.day());
     lcd.print("/");
@@ -531,7 +533,7 @@ void mostrarHora() {
     lcd.print(now.year() % 100);
 
     lcd.setCursor(0, 1);
-    lcd.print("HORA:  ");
+    lcd.print(F("HORA:  "));
     if (now.hour() < 10) lcd.print("0");
     lcd.print(now.hour());
     lcd.print(":");
@@ -551,53 +553,53 @@ void mostrarMenu() {
 void configurarAlarma() {
   lcd.setCursor(0, 0);
   if (definiendoPaso == 0) {
-    lcd.print("1.Compartimento:");
+    lcd.print(F("1.Compartimento:"));
     lcd.setCursor(0, 1);
-    lcd.print("Seccion: "); lcd.print(compartimento); lcd.print(" (1-4)");
+    lcd.print(F("Seccion: ")); lcd.print(compartimento); lcd.print(F(" (1-4)"));
   } else if (definiendoPaso == 1) {
-    lcd.print("2.Num de Alarma:");
+    lcd.print(F("2.Num de Alarma:"));
     lcd.setCursor(0, 1);
-    lcd.print("Alarma: "); lcd.print(numAlarma); lcd.print(" de 3");
+    lcd.print(F("Alarma: ")); lcd.print(numAlarma); lcd.print(F(" de 3"));
   } else if (definiendoPaso == 2) {
-    lcd.print("3.Ajustar Hora: ");
+    lcd.print(F("3.Ajustar Hora: "));
     lcd.setCursor(0, 1);
     if (hora < 10) lcd.print("0");
     lcd.print(hora); lcd.print(":"); if (minuto < 10) lcd.print("0"); lcd.print(minuto);
   } else if (definiendoPaso == 3) {
-    lcd.print("4.Ajustar Minuto");
+    lcd.print(F("4.Ajustar Minuto"));
     lcd.setCursor(0, 1);
     if (hora < 10) lcd.print("0");
     lcd.print(hora); lcd.print(":"); if (minuto < 10) lcd.print("0"); lcd.print(minuto);
   } else if (definiendoPaso == 4) {
-    lcd.print("5.Cant Pastillas");
+    lcd.print(F("5.Cant Pastillas"));
     lcd.setCursor(0, 1);
-    lcd.print("Dosis: "); lcd.print(cantidadDosis); lcd.print(" pastilla(s)");
+    lcd.print(F("Dosis: ")); lcd.print(cantidadDosis); lcd.print(F(" pastilla(s)"));
   }
 }
 
 void gestionarBorrado() {
   lcd.setCursor(0, 0);
   if (pasoBorrado == 0) {
-    lcd.print("Borrar Compart:");
+    lcd.print(F("Borrar Compart:"));
     lcd.setCursor(0, 1);
-    lcd.print("Seccion: "); lcd.print(borrarComp); lcd.print(" (1-4)");
+    lcd.print(F("Seccion: ")); lcd.print(borrarComp); lcd.print(F(" (1-4)"));
   } else if (pasoBorrado == 1) {
-    lcd.print("Borrar Alarma: ");
+    lcd.print(F("Borrar Alarma: "));
     lcd.setCursor(0, 1);
-    lcd.print("Alarma: "); lcd.print(borrarNumAlarma); lcd.print(" de 3");
+    lcd.print(F("Alarma: ")); lcd.print(borrarNumAlarma); lcd.print(F(" de 3"));
   }
 }
 
 void gestionarCarga() {
   lcd.setCursor(0, 0);
   if (pasoCargar == 0) {
-    lcd.print("1.Compartimento:");
+    lcd.print(F("1.Compartimento:"));
     lcd.setCursor(0, 1);
-    lcd.print("Seccion: "); lcd.print(cargarComp); lcd.print(" (1-4)");
+    lcd.print(F("Seccion: ")); lcd.print(cargarComp); lcd.print(F(" (1-4)"));
   } else if (pasoCargar == 1) {
-    lcd.print("2.Cant a Cargar:");
+    lcd.print(F("2.Cant a Cargar:"));
     lcd.setCursor(0, 1);
-    lcd.print("Agregar: "); lcd.print(cargarCant); lcd.print(" past.");
+    lcd.print(F("Agregar: ")); lcd.print(cargarCant); lcd.print(F(" past."));
   }
 }
 
@@ -607,7 +609,7 @@ void mostrarProgramado() {
 
   lcd.setCursor(0, 0);
   lcd.print("C"); lcd.print(verCompartimento);
-  lcd.print(" Alarma "); lcd.print(verAlarma); lcd.print("/3");
+  lcd.print(F(" Alarma ")); lcd.print(verAlarma); lcd.print("/3");
 
   lcd.setCursor(0, 1);
   if (horasAlarmas[cIdx][aIdx] != -1) {
@@ -616,10 +618,10 @@ void mostrarProgramado() {
     lcd.print(":");
     if (minutosAlarmas[cIdx][aIdx] < 10) lcd.print("0");
     lcd.print(minutosAlarmas[cIdx][aIdx]);
-    lcd.print("hs Cant:");
+    lcd.print(F("hs Cant:"));
     lcd.print(dosisAlarmas[cIdx][aIdx]);
   } else {
-    lcd.print("Sin programar   ");
+    lcd.print(F("Sin programar   "));
   }
 }
 
@@ -636,9 +638,9 @@ void mostrarOpcion() {
       break;
     case 4:
       lcd.setCursor(0, 0);
-      lcd.print("Resetear TODO?");
+      lcd.print(F("Resetear TODO?"));
       lcd.setCursor(0, 1);
-      lcd.print("OK:Si  Atras:No ");
+      lcd.print(F("OK:Si  Atras:No "));
       break;
     case 5:
       gestionarCarga();
