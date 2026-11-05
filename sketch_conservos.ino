@@ -1,3 +1,4 @@
+// Codigo Pastillero Electrónico ARDUINO NANO
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <RTClib.h>
